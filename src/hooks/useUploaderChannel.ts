@@ -133,7 +133,11 @@ export function useUploaderChannel(
     const handleUnload = (): void => {
       console.log('[UploaderChannel] destroying channel on page unload')
       // Using sendBeacon for best-effort delivery during page unload
-      navigator.sendBeacon('/api/destroy', JSON.stringify({ slug: shortSlug }))
+      // The channel secret proves ownership, so only the uploader can delete.
+      navigator.sendBeacon(
+        '/api/destroy',
+        JSON.stringify({ slug: shortSlug, secret }),
+      )
     }
 
     window.addEventListener('beforeunload', handleUnload)

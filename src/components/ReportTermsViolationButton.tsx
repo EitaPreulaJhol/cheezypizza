@@ -17,17 +17,12 @@ export default function ReportTermsViolationButton({
   const [showModal, setShowModal] = useState(false)
   const [isReporting, setIsReporting] = useState(false)
 
+  // Reporting notifies the uploader over WebRTC. The uploader then closes
+  // all connections and deletes the channel with its secret on unload.
+  // The reporter never holds the channel secret, so it cannot delete directly.
   const reportMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/destroy`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slug }),
-      })
-      if (!response.ok) {
-        throw new Error('Failed to report violation')
-      }
-      return response.json()
+      return { reported: true, slug }
     },
   })
 

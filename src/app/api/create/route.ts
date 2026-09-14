@@ -2,13 +2,29 @@
 
 import { NextResponse } from 'next/server'
 import { getOrCreateChannelRepo } from '../../../channel'
+import config from '../../../config'
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const { uploaderPeerID } = await request.json()
+  let body: unknown
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
 
-  if (!uploaderPeerID) {
+  const { uploaderPeerID } = body as { uploaderPeerID?: unknown }
+
+  // Validate peer ID shape before creating storage entries.
+  if (typeof uploaderPeerID !== 'string') {
     return NextResponse.json(
       { error: 'Uploader peer ID is required' },
+      { status: 400 },
+    )
+  }
+  const { min, max } = config.bodyKeys.uploaderPeerID
+  if (uploaderPeerID.length < min || uploaderPeerID.length > max) {
+    return NextResponse.json(
+      { error: 'Invalid uploader peer ID' },
       { status: 400 },
     )
   }

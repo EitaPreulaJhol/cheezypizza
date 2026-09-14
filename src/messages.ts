@@ -15,53 +15,80 @@ export enum MessageType {
   Report = 'Report',
 }
 
+// Shared bounds keep peer-supplied metadata small and header-safe.
+const fileNameSchema = z
+  .string()
+  .min(1)
+  .max(255)
+  .refine(
+    (v) =>
+      v.trim().length > 0 &&
+      !v.includes('/') &&
+      !v.includes('\\') &&
+      !v.includes('\0') &&
+      !v.includes('..'),
+    { message: 'Invalid file name' },
+  )
+
+const sizeSchema = z.number().int().nonnegative().max(20_000_000_000)
+const offsetSchema = z.number().int().nonnegative().max(20_000_000_000)
+const sha256Schema = z
+  .string()
+  .regex(/^[0-9a-f]{64}$/i)
+  .optional()
+
+// Chunk payloads must be raw bytes, never arbitrary objects.
+const bytesSchema = z.union([z.instanceof(Uint8Array), z.instanceof(ArrayBuffer)], {
+  message: 'Invalid chunk bytes',
+})
+
 export const RequestInfoMessage = z.object({
   type: z.literal(MessageType.RequestInfo),
-  browserName: z.string(),
-  browserVersion: z.string(),
-  osName: z.string(),
-  osVersion: z.string(),
-  mobileVendor: z.string(),
-  mobileModel: z.string(),
+  browserName: z.string().max(128),
+  browserVersion: z.string().max(128),
+  osName: z.string().max(128),
+  osVersion: z.string().max(128),
+  mobileVendor: z.string().max(128),
+  mobileModel: z.string().max(128),
 })
 
 export const InfoMessage = z.object({
   type: z.literal(MessageType.Info),
   files: z.array(
     z.object({
-      fileName: z.string(),
-      size: z.number(),
-      type: z.string(),
-      sha256: z.string().optional(),
+      fileName: fileNameSchema,
+      size: sizeSchema,
+      type: z.string().max(256),
+      sha256: sha256Schema,
     }),
-  ),
+  ).max(100),
 })
 
 export const HashUpdateMessage = z.object({
   type: z.literal(MessageType.HashUpdate),
-  fileName: z.string(),
-  sha256: z.string(),
+  fileName: fileNameSchema,
+  sha256: z.string().regex(/^[0-9a-f]{64}$/i),
 })
 
 export const StartMessage = z.object({
   type: z.literal(MessageType.Start),
-  fileName: z.string(),
-  offset: z.number(),
+  fileName: fileNameSchema,
+  offset: offsetSchema,
 })
 
 export const ChunkMessage = z.object({
   type: z.literal(MessageType.Chunk),
-  fileName: z.string(),
-  offset: z.number(),
-  bytes: z.unknown(),
+  fileName: fileNameSchema,
+  offset: offsetSchema,
+  bytes: bytesSchema,
   final: z.boolean(),
 })
 
 export const ChunkAckMessage = z.object({
   type: z.literal(MessageType.ChunkAck),
-  fileName: z.string(),
-  offset: z.number(),
-  bytesReceived: z.number(),
+  fileName: fileNameSchema,
+  offset: offsetSchema,
+  bytesReceived: z.number().int().nonnegative().max(20_000_000_000),
 })
 
 export const DoneMessage = z.object({
@@ -70,17 +97,17 @@ export const DoneMessage = z.object({
 
 export const ErrorMessage = z.object({
   type: z.literal(MessageType.Error),
-  error: z.string(),
+  error: z.string().max(1000),
 })
 
 export const PasswordRequiredMessage = z.object({
   type: z.literal(MessageType.PasswordRequired),
-  errorMessage: z.string().optional(),
+  errorMessage: z.string().max(1000).optional(),
 })
 
 export const UsePasswordMessage = z.object({
   type: z.literal(MessageType.UsePassword),
-  password: z.string(),
+  password: z.string().min(1).max(256),
 })
 
 export const PauseMessage = z.object({
