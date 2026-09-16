@@ -4,6 +4,7 @@ import React, { JSX, useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/atom-one-light.css'
+import { sanitizeHljs } from '../utils/sanitizeHighlight'
 
 const PASTE_FILENAME = '___pasted___.txt'
 
@@ -288,7 +289,7 @@ function CodeContent({
         className="m-0 p-4 text-xs font-mono leading-relaxed min-h-full"
         style={{ background: 'var(--hljs-bg)' }}
       >
-        <code dangerouslySetInnerHTML={{ __html: highlighted }} />
+        <code dangerouslySetInnerHTML={{ __html: sanitizeHljs(highlighted) }} />
       </pre>
     </div>
   )

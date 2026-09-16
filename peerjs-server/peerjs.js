@@ -4,6 +4,10 @@ const { ExpressPeerServer } = require('peer')
 const app = express()
 const port = process.env.PORT || 9000
 
+// Body parsing is intentionally left disabled. The signaling server only
+// handles PeerJS WebSocket upgrades and status paths, so JSON or URL-encoded
+// bodies are never needed here.
+
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000')
   .split(',')
   .map(o => o.trim())

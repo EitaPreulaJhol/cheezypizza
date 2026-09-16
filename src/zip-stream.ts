@@ -79,6 +79,24 @@ type ZipUnderlyingSource = {
   pull?: (ctrl: ZipWriter) => void
 }
 
+// Normalize an entry name so archive members cannot escape the target
+// directory when extracted and cannot break the zip headers.
+function sanitizeEntryName(input) {
+  const raw = String(input ?? '').trim()
+  const segments = raw
+    .replace(/\\/g, '/')
+    .split('/')
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0 && part !== '.' && part !== '..')
+    // eslint-disable-next-line no-control-regex
+    .map((part) => part.replace(/[\u0000-\u001F\u007F]/g, '').slice(0, 255))
+    .filter((part) => part.length > 0)
+  if (segments.length === 0) {
+    throw new Error('Invalid file name.')
+  }
+  return segments.join('/').slice(0, 1024)
+}
+
 export function createZipStream(
   underlyingSource: ZipUnderlyingSource,
 ): ReadableStream {
@@ -105,7 +123,7 @@ export function createZipStream(
           'Cannot enqueue a chunk into a readable stream that is closed or has been requested to be closed',
         )
 
-      let name = fileLike.name.trim()
+      let name = sanitizeEntryName(fileLike.name)
       const date = new Date(
         typeof fileLike.lastModified === 'undefined'
           ? Date.now()

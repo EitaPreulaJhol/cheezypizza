@@ -23,7 +23,16 @@ export interface ChannelRepo {
   createChannel(uploaderPeerID: string, ttl?: number): Promise<Channel>
   fetchChannel(slug: string): Promise<Channel | null>
   renewChannel(slug: string, secret: string, ttl?: number): Promise<boolean>
-  destroyChannel(slug: string): Promise<void>
+  destroyChannel(slug: string, secret?: string): Promise<boolean>
+}
+
+// Compare channel secrets in constant time to avoid timing oracles.
+function isSecretValid(actual: string | undefined, provided: string): boolean {
+  if (!actual) return false
+  const a = Buffer.from(actual)
+  const b = Buffer.from(provided)
+  if (a.length !== b.length) return false
+  return crypto.timingSafeEqual(a, b)
 }
 
 function getShortSlugKey(shortSlug: string): string {
@@ -181,10 +190,18 @@ export class MemoryChannelRepo implements ChannelRepo {
     return true
   }
 
-  async destroyChannel(slug: string): Promise<void> {
+  async destroyChannel(slug: string, secret?: string): Promise<boolean> {
     const channel = await this.fetchChannel(slug)
     if (!channel) {
-      return
+      return false
+    }
+
+    // Require the channel secret when one is set, so link holders cannot
+    // delete channels owned by other uploaders.
+    if (channel.secret) {
+      if (!secret || !isSecretValid(channel.secret, secret)) {
+        return false
+      }
     }
 
     const shortKey = getShortSlugKey(channel.shortSlug)
@@ -205,6 +222,7 @@ export class MemoryChannelRepo implements ChannelRepo {
 
     this.channels.delete(longKey)
     this.channels.delete(shortKey)
+    return true
   }
 }
 
@@ -277,14 +295,23 @@ export class RedisChannelRepo implements ChannelRepo {
     return true
   }
 
-  async destroyChannel(slug: string): Promise<void> {
+  async destroyChannel(slug: string, secret?: string): Promise<boolean> {
     const channel = await this.fetchChannel(slug)
     if (!channel) {
-      return
+      return false
+    }
+
+    // Require the channel secret when one is set, so link holders cannot
+    // delete channels owned by other uploaders.
+    if (channel.secret) {
+      if (!secret || !isSecretValid(channel.secret, secret)) {
+        return false
+      }
     }
 
     await this.client.del(getLongSlugKey(channel.longSlug))
     await this.client.del(getShortSlugKey(channel.shortSlug))
+    return true
   }
 }
 

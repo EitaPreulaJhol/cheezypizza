@@ -11,6 +11,7 @@ import React, {
 import Image from 'next/image'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/atom-one-light.css'
+import { sanitizeHljs } from '../utils/sanitizeHighlight'
 import { extractFileList } from '../fs'
 import { FaRegFile } from 'react-icons/fa'
 import { ImPaste } from 'react-icons/im'
@@ -367,7 +368,9 @@ function TextPreview({
             className="m-0 p-3 text-xs font-mono leading-relaxed"
             style={{ background: 'var(--hljs-bg)' }}
           >
-            <code dangerouslySetInnerHTML={{ __html: highlighted }} />
+            <code
+              dangerouslySetInnerHTML={{ __html: sanitizeHljs(highlighted) }}
+            />
           </pre>
         ) : (
           <textarea
