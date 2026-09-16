@@ -289,9 +289,7 @@ function CodeContent({
         className="m-0 p-4 text-xs font-mono leading-relaxed min-h-full"
         style={{ background: 'var(--hljs-bg)' }}
       >
-        <code
-          dangerouslySetInnerHTML={{ __html: sanitizeHljs(highlighted) }}
-        />
+        <code dangerouslySetInnerHTML={{ __html: sanitizeHljs(highlighted) }} />
       </pre>
     </div>
   )

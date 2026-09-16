@@ -38,9 +38,12 @@ const sha256Schema = z
   .optional()
 
 // Chunk payloads must be raw bytes, never arbitrary objects.
-const bytesSchema = z.union([z.instanceof(Uint8Array), z.instanceof(ArrayBuffer)], {
-  message: 'Invalid chunk bytes',
-})
+const bytesSchema = z.union(
+  [z.instanceof(Uint8Array), z.instanceof(ArrayBuffer)],
+  {
+    message: 'Invalid chunk bytes',
+  },
+)
 
 export const RequestInfoMessage = z.object({
   type: z.literal(MessageType.RequestInfo),
@@ -54,14 +57,16 @@ export const RequestInfoMessage = z.object({
 
 export const InfoMessage = z.object({
   type: z.literal(MessageType.Info),
-  files: z.array(
-    z.object({
-      fileName: fileNameSchema,
-      size: sizeSchema,
-      type: z.string().max(256),
-      sha256: sha256Schema,
-    }),
-  ).max(100),
+  files: z
+    .array(
+      z.object({
+        fileName: fileNameSchema,
+        size: sizeSchema,
+        type: z.string().max(256),
+        sha256: sha256Schema,
+      }),
+    )
+    .max(100),
 })
 
 export const HashUpdateMessage = z.object({
